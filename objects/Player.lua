@@ -1,8 +1,11 @@
 local love = require("love")
+local laser = require("objects.Laser")
 
 function Player(isDebug)
     local SHIP_SIZE = 30
     local VIEW_SNGLE = math.rad(90)
+    local LASER_DISTANCE = 0.55
+    local MAX_LASERS = 6
 
     debug = debug or false
     return {
@@ -11,6 +14,7 @@ function Player(isDebug)
         radius = SHIP_SIZE / 2,
         angle = VIEW_SNGLE,
         rotation = 0,
+        lasers = {},
         thrusting = false,
         thrust = {
             x = 0,
@@ -33,28 +37,83 @@ function Player(isDebug)
             )
         end,
 
-        draw = function (self)
-            local opacity = 1
+        shootLaser = function (self)
+            if #self.lasers < MAX_LASERS then
+                table.insert(self.lasers, Laser(
+                    self.x,
+                    self.y,
+                    self.angle
+                ))
+            end
+           
+        end,
 
-            if self.thrusting then
-                if not self.thrust.big_flame then
+        destroyLaser = function (self, index)
+            table.remove(self.lasers, index)
+        end,
+
+        resetFlame = function (self)
+            self.thrust.flame = 2
+            self.thrust.big_flame = false
+        end,
+
+         
+
+        draw = function (self, faded)
+            local opacity = (MAX_LASERS-#self.lasers+1)/(#self.lasers)
+
+            if faded then
+                opacity = 0.2
+            end
+
+            if self.thrust.flame<1 then
+                self.resetFlame(self)
+            end
+            
+            if not self.thrust.big_flame then
+                
+                if self.thrusting then
                     self.thrust.flame = self.thrust.flame -1/love.timer.getFPS()
-
                     if self.thrust.flame < 1.5 then
                         self.thrust.big_flame = true
                     end
                 else
-                    self.thrust.flame = self.thrust.flame +1/love.timer.getFPS()
+                    self.thrust.flame = self.thrust.flame -0.005
+                    --print(self.thrust.flame)
+                    if self.thrust.flame < 0.1 then
+                        self.thrust.big_flame = true
+                    end
+                end
 
+                
+            else
+                
+                if self.thrusting then
+                    self.thrust.flame = self.thrust.flame +1/love.timer.getFPS()
                     if self.thrust.flame > 2.5 then
                         self.thrust.big_flame = false
                     end
+                else
+                    self.thrust.flame = self.thrust.flame +0.005
+                 --   print(self.thrust.flame)
+                    if self.thrust.flame > 0.2 then
+                        self.thrust.big_flame = false
+                    end
                 end
+
+               
+            end
+
+            if not faded then
                 self:drawFlameThrust("fill", {1, 102/255, 25/255})
                 self:drawFlameThrust("line", {1, 0.16, 0})
             end
+           
 
-            love.graphics.setColor(1, 1, 1, opacity)
+
+            love.graphics.setColor(0.1, 0.6, 0.65, opacity)
+
+            -- player
             love.graphics.polygon(
                 "fill",
                 self.x + ((4/3)*self.radius) * math.cos(self.angle),
@@ -69,6 +128,12 @@ function Player(isDebug)
                 love.graphics.rectangle("fill", self.x-4, self.y-4, 8, 8)
                 love.graphics.circle("line", self.x, self.y, self.radius)
             end
+
+            for _, lsr in pairs(self.lasers) do
+                lsr:draw(faded)
+            end
+
+
         end,
         movePlayer = function (self)
             local FPS = love.timer.getFPS()
@@ -107,18 +172,14 @@ function Player(isDebug)
                 self.y = self.y+self.thrust.y
             end
 
-          --  self.x = self.x + self.thrust.x
-          --  self.y = self.y + self.thrust.y
+            for idx, lsr in pairs(self.lasers) do
+                lsr:move()
 
-            -- if self.x+2*self.radius<0 then
-            --     self.x = love.graphics.getWidth()
-            -- elseif self.x-2*self.radius>love.graphics.getWidth() then
-            --     self.x = 0
-            -- elseif self.y+2*self.radius<0 then
-            --     self.y = love.graphics.getHeight()
-            -- elseif self.y-2*self.radius>love.graphics.getHeight() then
-            --     self.y = 0
-            -- end
+                if (lsr.distance > LASER_DISTANCE*love.graphics.getWidth()) then
+                    self.destroyLaser(self, idx)
+                end
+            end
+
             
         end
     }
