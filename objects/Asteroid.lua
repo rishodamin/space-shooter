@@ -1,7 +1,6 @@
 local love = require("love")
 
-function Asteroid(x, y, ast_size, level, isDebug)
-    isDebug = isDebug or false
+function Asteroid(x, y, ast_size, level)
 
     local ASTEROID_VERT = 10 -- average verticies... how many edges it will gave
     local ASTEROID_JAG = 0.4 -- asteroid jaggedness (less round)
@@ -38,7 +37,7 @@ function Asteroid(x, y, ast_size, level, isDebug)
                 opacity = 0.2
             end
 
-            love.graphics.setColor(186 / 255, 189 / 255, 182 / 255, opacity)
+            love.graphics.setColor(101 / 255, 120 / 255, 115 / 255, opacity)
 
             local points = {self.x + self.radius * self.offset[1] * math.cos(self.angle), self.y + self.radius * self.offset[1] * math.sin(self.angle)}
 
@@ -48,11 +47,11 @@ function Asteroid(x, y, ast_size, level, isDebug)
             end
 
             love.graphics.polygon(
-                "line",
+                "fill",
                 points
             )
 
-            if isDebug then
+            if IsDebug then
                 love.graphics.setColor(1, 0, 0)
                 
                 love.graphics.circle("line", self.x, self.y, self.radius) -- the hitbox of the asteroid
@@ -76,6 +75,17 @@ function Asteroid(x, y, ast_size, level, isDebug)
                 self.y = -self.radius
             end
         end,
+
+        destroy = function (self, asteroids_tbl, idx, game)
+            local MIN_ASTEROID_SIZE = math.ceil(ASTEROID_SIZE / 8)
+
+            if self.radius > MIN_ASTEROID_SIZE then
+                table.insert(asteroids_tbl, Asteroid(self.x, self.y, self.radius, game.level))
+                table.insert(asteroids_tbl, Asteroid(self.x, self.y, self.radius, game.level))
+            end
+
+            table.remove(asteroids_tbl, idx)
+        end
     }
 end
 

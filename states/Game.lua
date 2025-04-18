@@ -35,14 +35,18 @@ function Game()
             end
         end,
 
+        addAsteroid = function (self)
+            local as_x = math.floor(math.random(love.graphics.getWidth()))
+            local as_y = math.floor(math.random(love.graphics.getHeight()))
+            table.insert(asteroids, 1, Asteroid(as_x, as_y, 100, self.level))
+        end,
+
         startNewGame =function (self, player)
             self:changeGameState("running")
 
             _G.asteroids = {}
-
-            local as_x = math.floor(math.random(love.graphics.getWidth()))
-            local as_y = math.floor(math.random(love.graphics.getHeight()))
-            table.insert(asteroids, 1, Asteroid(as_x, as_y, 100, self.level, false))
+            self.addAsteroid(self)
+            
         end
     }
 end
